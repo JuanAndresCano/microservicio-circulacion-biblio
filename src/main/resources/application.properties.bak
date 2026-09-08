@@ -17,10 +17,3 @@ keycloak.realm=biblioteca
 keycloak.resource=circulacion-service
 keycloak.public-client=false
 keycloak.credentials.secret=prrtDO9m4d8kAwSybJxoTyFxnzqiG2veZkosLLELVu8nUvVTdhz2bmIRxqVanglm5zEeXggEdhsjvRr6IT3eJt
-# Logs de las decisiones de autorizacion (Paso 2.2 del taller)
-logging.level.org.springframework.security=DEBUG
-
-# Las cookies que Keycloak deja en localhost:8080 tambien viajan a este puerto
-# (las cookies ignoran el puerto) y superan el limite por defecto de Tomcat (8KB),
-# lo que rompe la carga de Swagger UI desde el navegador con "Request header is too large".
-server.max-http-request-header-size=64KB

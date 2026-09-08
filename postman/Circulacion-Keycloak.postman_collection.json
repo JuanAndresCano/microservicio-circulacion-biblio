@@ -1,0 +1,490 @@
+{
+  "info": {
+    "name": "Circulacion - Keycloak (Taller 6)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Pruebas de seguridad OAuth2/JWT del microservicio de Circulacion.\nCada carpeta valida una regla:\n  0. Auth        -> obtener tokens y guardarlos en variables\n  1. Publico     -> endpoints sin seguridad\n  2. Con rol     -> acceso permitido segun el rol del token\n  3. Seguridad   -> casos negativos: 401 sin/con token invalido, 403 rol insuficiente"
+  },
+  "variable": [
+    {
+      "key": "access_token_librarian",
+      "value": ""
+    },
+    {
+      "key": "access_token_user",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Auth",
+      "item": [
+        {
+          "name": "Token - Librarian (password grant)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('trae access_token', () => pm.expect(json.access_token).to.be.a('string'));",
+                  "pm.collectionVariables.set('access_token_librarian', json.access_token);",
+                  "console.log('roles:', JSON.parse(atob(json.access_token.split('.')[1])).realm_access.roles);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "password"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{client_secret}}"
+                },
+                {
+                  "key": "username",
+                  "value": "{{librarian_user}}"
+                },
+                {
+                  "key": "password",
+                  "value": "{{librarian_pass}}"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token",
+              "host": [
+                "{{keycloak_url}}"
+              ],
+              "path": [
+                "realms",
+                "{{realm}}",
+                "protocol",
+                "openid-connect",
+                "token"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Token - Usuario normal (password grant)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('trae access_token', () => pm.expect(json.access_token).to.be.a('string'));",
+                  "pm.collectionVariables.set('access_token_user', json.access_token);",
+                  "console.log('roles:', JSON.parse(atob(json.access_token.split('.')[1])).realm_access.roles);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "password"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{client_secret}}"
+                },
+                {
+                  "key": "username",
+                  "value": "{{normal_user}}"
+                },
+                {
+                  "key": "password",
+                  "value": "{{normal_pass}}"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token",
+              "host": [
+                "{{keycloak_url}}"
+              ],
+              "path": [
+                "realms",
+                "{{realm}}",
+                "protocol",
+                "openid-connect",
+                "token"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Publico",
+      "item": [
+        {
+          "name": "GET /circulacion/public/status  (sin token -> 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 sin autenticacion', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{service_url}}/circulacion/public/status",
+              "host": [
+                "{{service_url}}"
+              ],
+              "path": [
+                "circulacion",
+                "public",
+                "status"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Con rol",
+      "item": [
+        {
+          "name": "GET /circulacion/prestamos  (Bearer librarian -> 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 con rol LIBRARIAN', () => pm.response.to.have.status(200));",
+                  "pm.test('devuelve una lista', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token_librarian}}"
+              }
+            ],
+            "url": {
+              "raw": "{{service_url}}/circulacion/prestamos",
+              "host": [
+                "{{service_url}}"
+              ],
+              "path": [
+                "circulacion",
+                "prestamos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /circulacion/prestamos  (Bearer usuario -> 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 con rol USER (endpoint permite ambos)', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token_user}}"
+              }
+            ],
+            "url": {
+              "raw": "{{service_url}}/circulacion/prestamos",
+              "host": [
+                "{{service_url}}"
+              ],
+              "path": [
+                "circulacion",
+                "prestamos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /circulacion/prestar  (Bearer librarian -> 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200/2xx al prestar con LIBRARIAN', () => pm.expect(pm.response.code).to.be.oneOf([200, 201, 204]));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token_librarian}}"
+              }
+            ],
+            "url": {
+              "raw": "{{service_url}}/circulacion/prestar?usuarioId=U001&libroId=1",
+              "host": [
+                "{{service_url}}"
+              ],
+              "path": [
+                "circulacion",
+                "prestar"
+              ],
+              "query": [
+                {
+                  "key": "usuarioId",
+                  "value": "U001"
+                },
+                {
+                  "key": "libroId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /circulacion/devolver  (Bearer librarian -> 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('2xx al devolver con LIBRARIAN', () => pm.expect(pm.response.code).to.be.oneOf([200, 201, 204, 404]));",
+                  "// 404 es aceptable si el prestamoId no existe; lo importante es que NO sea 401/403"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token_librarian}}"
+              }
+            ],
+            "url": {
+              "raw": "{{service_url}}/circulacion/devolver?prestamoId=REEMPLAZA_CON_UN_ID_REAL",
+              "host": [
+                "{{service_url}}"
+              ],
+              "path": [
+                "circulacion",
+                "devolver"
+              ],
+              "query": [
+                {
+                  "key": "prestamoId",
+                  "value": "REEMPLAZA_CON_UN_ID_REAL"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Seguridad (casos negativos)",
+      "item": [
+        {
+          "name": "GET /circulacion/prestamos  (sin token -> 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('401 sin token', () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{service_url}}/circulacion/prestamos",
+              "host": [
+                "{{service_url}}"
+              ],
+              "path": [
+                "circulacion",
+                "prestamos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /circulacion/prestamos  (token corrupto -> 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('401 con token invalido', () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer esto.no.es-un-jwt-valido"
+              }
+            ],
+            "url": {
+              "raw": "{{service_url}}/circulacion/prestamos",
+              "host": [
+                "{{service_url}}"
+              ],
+              "path": [
+                "circulacion",
+                "prestamos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /circulacion/prestar  (Bearer usuario -> 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('403: usuario sin rol LIBRARIAN no puede prestar', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token_user}}"
+              }
+            ],
+            "url": {
+              "raw": "{{service_url}}/circulacion/prestar?usuarioId=U001&libroId=1",
+              "host": [
+                "{{service_url}}"
+              ],
+              "path": [
+                "circulacion",
+                "prestar"
+              ],
+              "query": [
+                {
+                  "key": "usuarioId",
+                  "value": "U001"
+                },
+                {
+                  "key": "libroId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /circulacion/prestar  (sin token -> 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('401 sin token', () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{service_url}}/circulacion/prestar?usuarioId=U001&libroId=1",
+              "host": [
+                "{{service_url}}"
+              ],
+              "path": [
+                "circulacion",
+                "prestar"
+              ],
+              "query": [
+                {
+                  "key": "usuarioId",
+                  "value": "U001"
+                },
+                {
+                  "key": "libroId",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
